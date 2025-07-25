@@ -162,7 +162,7 @@ def chat_function(user_input, history: list[dict], interview_app: InterviewApp):
         result = interview_app.invoke_user_query(user_input, history)
     except Exception as ex:
         interview_app.logger.exception(ex)
-        result = {"role": "user", "content": "Unexpected issue happen. Please try to answer again"}
+        result = {"role": "assistant", "content": "Unexpected issue happen. Please try to answer again"}
     history = history + [{"role": "user", "content": user_input}] + [result]
     return history, history, ""
 

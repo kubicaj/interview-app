@@ -8,14 +8,18 @@ from src.pojo.interview_graph_state import InterviewGraphState
 from src.custom_types.interview_stage import InterviewStage
 from src.common.llm_factory import LLMFactory
 
+TECH_LEAD_TARGET = "Technical Lead"
+CANDIDATE_TARGET = "Candidate"
+INTERVIEW_ADMINISTRATOR_TARGET = "Interview Administrator"
 
 class ManagerOutput(BaseModel):
+
     """
     Structured answer of manager agent
     """
-    action_to_take: Annotated[
-        Literal["talking_to_technical_lead", "talking_to_candidate", "talking_to_interview_administrator"],
-        "With who you are talking right now"]
+    who_to_send_the_message_to: Annotated[
+        Literal[TECH_LEAD_TARGET, CANDIDATE_TARGET, "Interview Administrator"],
+        "For who the message is address "]
     stage: Annotated[InterviewStage, "Stage of interview where manager is focus"]
     manager_message: Annotated[str, "Manager message: to user or to technical lead"]
 
@@ -57,16 +61,16 @@ class InterviewManager(BaseInterviewAgent):
         if not interview_state.last_agent:
             interview_state.last_agent = self.INTERVIEW_MANAGER_AGENT_NAME
 
-        open_ai_llm = LLMFactory.get_chat_open_ai_llm(self.INTERVIEW_MANAGER_AGENT_NAME)
+        open_ai_llm = LLMFactory.get_chat_open_ai_llm(self.INTERVIEW_MANAGER_AGENT_NAME, llm_model_type="gpt-4.1")
         llm_with_structured_output = open_ai_llm.with_structured_output(ManagerOutput)
         response: ManagerOutput = llm_with_structured_output.invoke(input=self._create_system_prompt(interview_state))
 
         # resolve the next agent
         next_agent = "END"
-        if response.action_to_take == "talking_to_interview_administrator" and \
+        if response.who_to_send_the_message_to == INTERVIEW_ADMINISTRATOR_TARGET and \
                 interview_state.last_agent != self.INTERVIEW_ADMINISTRATOR_AGENT_NAME:
             next_agent = self.INTERVIEW_ADMINISTRATOR_AGENT_NAME
-        if response.action_to_take == "talking_to_technical_lead":
+        if response.who_to_send_the_message_to == TECH_LEAD_TARGET:
             next_agent = self.TECH_LEAD_AGENT_NAME
         new_state = interview_state.create_copy(
             {"role": "assistant", "content": response.manager_message},

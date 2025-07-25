@@ -131,7 +131,5 @@ class InterviewApp:
             interview_step_state,
             config=graph_config
         )
-        self.logger.info(f"Answer from app: {result}")
-
         manager_reply = {"role": "assistant", "content": result["messages"][-1].content}
         return manager_reply

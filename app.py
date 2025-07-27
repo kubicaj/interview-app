@@ -1,100 +1,12 @@
-import asyncio
-import os
-import threading
 import functools
 import gradio as gr
 
-from src.interview_config import InterviewConfig
-from src.interview_app import InterviewApp
-
-POSITIONS = list(InterviewConfig.get_active_instance().all_open_positions.values())
+from src.ui.ui_interview_app import POSITIONS, hide_position_detail, chat_function, handle_cv_upload, \
+    load_position_detail, start_interview, show_confirm_modal, hide_confirm_modal, end_interview_with_summary, chunk
 
 PRIMARY_COLOR = "#224488"
 BG = "#f4f4fb"
 MAX_COLUMNS = 4
-
-
-def load_position_detail(position_index):
-    open_position = POSITIONS[position_index]
-    return gr.update(visible=True), open_position.open_position_content, open_position.position_title
-
-
-def hide_detail():
-    return gr.update(visible=False), "", ""
-
-
-def set_interview_buttons(disable=True):
-    return [gr.update(interactive=(not disable)) for _ in POSITIONS]
-
-
-def start_interview(position_index: int, cv_content: str):
-    initial_message = (
-        f"Hi. You are here because you apply for position {POSITIONS[position_index].position_title}. Can we start please?"
-    )
-    interview_app = InterviewApp(POSITIONS[position_index].position_identifier, cv_content)
-    interview_app.create_graph()
-    return (
-        gr.update(visible=True),
-        POSITIONS[position_index].position_title,
-        position_index,
-        *set_interview_buttons(disable=True),
-        [{"role": "assistant", "content": initial_message}],
-        [{"role": "assistant", "content": initial_message}],
-        interview_app
-    )
-
-
-def show_confirm_modal():
-    return gr.update(visible=True)
-
-
-def hide_confirm_modal():
-    return gr.update(visible=False)
-
-
-async def end_interview_app(interview_app: InterviewApp, history: list[dict]):
-    interview_app.invoke_user_query("Finish the interview now", history)
-
-
-def end_interview_with_summary(interview_app: InterviewApp, history: list[dict]):
-    interview_app.invoke_user_query("Finish the interview now", history)
-    summary_text = ""
-    filename = f"summaries{os.path.sep}interview_summary_{interview_app.session_id}.md"
-    with open(filename, "r") as file:
-        summary_text = file.read()
-    return (
-        gr.update(visible=False), "", -1,
-        *set_interview_buttons(disable=False),
-        gr.update(visible=False),
-        gr.update(visible=False),
-        gr.update(visible=True),
-        summary_text,
-        filename
-    )
-
-
-def chat_function(user_input, history: list[dict], interview_app: InterviewApp):
-    try:
-        result = interview_app.invoke_user_query(user_input, history)
-    except Exception as ex:
-        interview_app.logger.exception(ex)
-        result = {"role": "assistant", "content": "Unexpected issue happen. Please try to answer again"}
-    history = history + [{"role": "user", "content": user_input}] + [result]
-    return history, history, ""
-
-
-def chunk(seq, size):
-    for i in range(0, len(seq), size):
-        yield seq[i:i + size]
-
-
-def handle_cv_upload(file):
-    if file is None:
-        return gr.update(visible=True), gr.update(visible=False), ""
-    content_of_cv = InterviewConfig.get_pdf_content(file)
-    return gr.update(visible=False), gr.update(
-        visible=True), "✅ CV received! You may now browse open positions.", content_of_cv
-
 
 with gr.Blocks(css=f"""
 .centered-row {{
@@ -105,7 +17,7 @@ with gr.Blocks(css=f"""
 
 .card {{
     background: #ffffff;
-    border-radius: 18px;
+    border-radius: 5px;
     box-shadow: 0 4px 20px rgba(34, 68, 136, 0.1);
     border: 1px solid #dce3f3;
     margin: 12px;
@@ -167,6 +79,33 @@ with gr.Blocks(css=f"""
     margin-top: 30px;
 }}
 
+#card_button {{
+    width: auto !important;
+    display: inline-block !important;
+    min-width: 140px;
+    padding: 0.4em 1.2em;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 22px;
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    margin: 0.2em 0.3em 0.2em 0;
+    box-shadow: 0 2px 4px rgba(25,118,210,0.08);
+    transition: background .2s;
+    text-align: center;
+    vertical-align: middle;
+}}
+#card_button:hover {{
+    background: #125ba1;
+    color: #ffc;
+}}
+.button-row {{
+    display: flex;
+    gap: 0.5em;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}}
 @keyframes fadeIn {{
     0% {{ opacity: 0; transform: translateY(10px); }}
     100% {{ opacity: 1; transform: translateY(0); }}
@@ -175,9 +114,9 @@ with gr.Blocks(css=f"""
     gr.Markdown(
         """
         # 🚀 Join Our Team!
-        Upload your CV to discover exciting career opportunities tailored for you.
+        Upload canidate CV to discover exciting career opportunities tailored for you.
 
-        1. 📎 **Upload your CV** using the button above.  
+        1. 📎 **Upload canidate CV** using the button above.  
         2. 🧭 **Explore open positions** that match your profile.  
         3. 🔍 **Click "Show detail"** to learn more about a specific role.  
         4. 🤖 **Start an AI interview** for your chosen position.  
@@ -188,31 +127,35 @@ with gr.Blocks(css=f"""
     )
 
     with gr.Row():
-        uploaded_file = gr.File(label="Upload your CV (PDF)", file_types=[".pdf"])
-        upload_button = gr.Button("Submit CV", variant="primary")
+        uploaded_file = gr.File(label="📎Upload candidate CV (PDF)", file_types=[".pdf"])
+        upload_button = gr.Button("📤 Submit CV", variant="primary")
 
     upload_feedback = gr.Markdown("", visible=False)
-    cv_warning = gr.Markdown("📎 Please upload your CV to continue.", visible=False)
+    cv_warning = gr.Markdown("📎 Please upload candidate CV to continue.", visible=False)
 
     with gr.Group(visible=False, elem_id="job-cards") as job_card_section:
         show_btns = []
         interview_btns = []
+        create_preparation_sheet_btns = []
         for chunk_positions in chunk(POSITIONS, MAX_COLUMNS):
             with gr.Row(elem_classes="centered-row"):
                 for pos in chunk_positions:
                     with gr.Group(elem_classes="card"):
                         gr.Markdown(f"<div class='card-title'>{pos.position_title}</div>")
                         gr.Markdown(f"<div class='card-desc'>{pos.position_short_summary}</div>")
-                        btn_det = gr.Button("Show detail")
-                        btn_int = gr.Button("Start interview", variant="primary")
-                        show_btns.append(btn_det)
-                        interview_btns.append(btn_int)
+                        btn_show_detail = gr.Button("🔎 Show detail", elem_id="card_button")
+                        btn_start_interview = gr.Button("🗣️ Start interview", elem_id="card_button")
+                        btn_create_preparation_sheet = gr.Button("📝 Create preparation sheet", elem_id="card_button")
+                        show_btns.append(btn_show_detail)
+                        interview_btns.append(btn_start_interview)
+                        create_preparation_sheet_btns.append(btn_create_preparation_sheet)
+
 
     with gr.Group(visible=False) as detail_group:
         detail_title = gr.Markdown("**Position Detail**", elem_id="modal-title")
         detail_md = gr.Markdown("", elem_id="modal-md")
         btn_close = gr.Button("Close detail", variant="stop")
-    btn_close.click(hide_detail, outputs=[detail_group, detail_md, detail_title])
+    btn_close.click(hide_position_detail, outputs=[detail_group, detail_md, detail_title])
 
     interview_chat = gr.Column(visible=False, elem_id="interview-section")
     chosen_position_name = gr.State("")

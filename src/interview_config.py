@@ -32,6 +32,7 @@ class InterviewConfig:
 
     def __init__(self):
         self.candidate_cv = ""
+        self.hr_department_instructions = "No additional instructions"
         self.all_open_positions = self._get_open_positions()
 
     @staticmethod

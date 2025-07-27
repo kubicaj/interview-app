@@ -26,7 +26,8 @@ class InterviewAdministrator(BaseInterviewAgent):
         # if there is nno user query then generate the question
         system_prompt = self.agent_prompt_templates["agent_prompt"].format(**{
             "position_description": self._interview_config.get_position_content(self.chosen_position),
-            "candidate_cv": self._interview_config.candidate_cv
+            "candidate_cv": self._interview_config.candidate_cv,
+            "hr_department_instructions": self._hr_department_instructions
         })
         return interview_state.messages + [SystemMessage(content=system_prompt)]
 

@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode, tools_condition
 
+from src.interview_config import InterviewConfig
 from src.pojo.interview_graph_state import InterviewGraphState
 from src.tools.google_search import tool_search_for_interview
 from src.common.logger import init_logger
@@ -30,11 +31,12 @@ class BaseInterviewAgent(ABC):
     INTERVIEW_ADMINISTRATOR_AGENT_NAME = "interview_administrator"
     MAX_ALLOWED_ITERATIONS = 10
 
-    def __init__(self, interview_app: "InterviewApp", chosen_position: str = None):
+    def __init__(self, interview_app: "InterviewApp" = None, interview_config: InterviewConfig = None,
+                 chosen_position: str = None):
         self.logger = init_logger()
         self.agent_prompt_templates = self.load_agent_prompt()
         self.interview_app = interview_app
-        self._interview_config = interview_app.interview_config
+        self._interview_config = interview_app.interview_config if interview_app else interview_config
         self.chosen_position = chosen_position
 
     @abstractmethod

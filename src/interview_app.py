@@ -34,11 +34,11 @@ class InterviewApp:
         self.interview_config.update_candidate_cv(cv_content)
         self.nodes_dict = {
             BaseInterviewAgent.INTERVIEW_MANAGER_AGENT_NAME:
-                InterviewManager(self, chosen_position).agent_callback,
+                InterviewManager(self, chosen_position=chosen_position).agent_callback,
             BaseInterviewAgent.TECH_LEAD_AGENT_NAME:
-                TechnicalLead(self, chosen_position).agent_callback,
+                TechnicalLead(self, chosen_position=chosen_position).agent_callback,
             BaseInterviewAgent.INTERVIEW_ADMINISTRATOR_AGENT_NAME:
-                InterviewAdministrator(self, chosen_position).agent_callback,
+                InterviewAdministrator(self, chosen_position=chosen_position).agent_callback,
             self.TOOLS_AGENT_NAME:
                 ToolNode(tools=BaseInterviewAgent.get_tools())
         }

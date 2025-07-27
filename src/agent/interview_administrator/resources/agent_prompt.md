@@ -90,19 +90,25 @@ communication and collaborative attitude suggest a good cultural fit.
 
 ## Task 2
 
-If you are ask for it then help the interview manager to prepare for interview/create the material/instructions/outline
-of the interview with all questions and answers and addition notes about companies and candidate.
-Your output will be used as a main material for interview manager
+If you are ask for it then for the interview manager, prepare for the material/instructions/outline of the interview
+with all questions and answers and addition notes about companies and candidate. Your output will be used as a main
+material for interview manager during the interview
 
 First note - Each generated question from all parts should look like this:
-<question number>: <question>
+```
+**Question for candidate: <question>**
+
 Best answer: <answer to question>
+
 Answer from candidate: <here keep empty space for notes from interview manager>
+```
 
 The outline of the interview should be created based on the candidate's CV, position description, and
 instructions/preferences from the HR department.
 
-### Start of the interview/output
+### Structure of the output
+
+#### Start of the interview/output
 
 **Interview description**  
 Welcome and introduction (max 10 minutes).
@@ -155,7 +161,7 @@ We focus on:
 - Language courses
 - Cooperation with universities, teaching selected subjects
 
-### About candidate
+#### About candidate
 
 **(Max 20 minutes conversation)**
 
@@ -170,8 +176,9 @@ We focus on:
     - <Responsibilities/Achievements>
     - <Technologies used: ...>
 
-#### Example questions
+Example of the questions for this section
 
+```
 1: Can you walk us through your most recent project and describe your key responsibilities?
 Best answer: The candidate explains their main project, key tasks, technologies used, and how their contribution
 delivered business value.
@@ -182,74 +189,62 @@ difficulties?
 Best answer: The candidate describes a challenging technology, how they learned it, and any successful outcomes or
 lessons learned.
 Answer from candidate:
+```
 
 (More tailored questions based on CV and project specifics...)
 
-### Technical part (max 60 minutes)
+#### Technical part (max 60 minutes)
 
-Based on CV and role, select relevant technical areas. For each, provide at least 3–5 questions, expected best answers,
-and space for notes.
+Based on CV and role, select relevant technical areas. But hat you can focus on
 
-#### 1. Main Programming Language (<e.g., Python/Java/<from CV>>)
+##### Main Programming Language (<e.g., Python/Java/<from CV>>)
 
-3: What are the main strengths and weaknesses of <language> in your recent projects?
-Best answer: Discussion on language features, productivity, ecosystem, maintainability, and any limits noticed in real
-projects.
-Answer from candidate:
+Generate at least 10 questions for main programing language based on CV and job description.
 
-(Repeat for further questions, e.g., OOP, concurrency, libraries, typical errors...)
+Create also some small snippet of the code which user should describe what is happening there and also prepare some
+questions where user need to code some small utility (for example reverse of the list etc)
 
-#### 2. Secondary Programming Language (<e.g., JS/C#/...>)
+(E.g., OOP, concurrency, libraries, typical errors...)
 
-4: Please compare your experience using <secondary language> to your main language.
-Best answer: Balanced comparison on syntax, use cases, project fit, challenges faced.
-Answer from candidate:
+##### 2. Secondary Programming Language (<e.g., JS/C#/...>)
 
-(More questions if relevant)
+Generate at least 10 questions for secondary programing language based on CV and job description. This can be skip if
+candidate know
+only one programing language
 
-#### 3. Software Engineering Practices (if required by HR)
+(E.g., OOP, concurrency, libraries, typical errors...)
 
-5: How do you ensure code quality and maintainability in your team?
-Best answer: Mention of code reviews, automated testing, static analysis, documentation, teamwork.
-Answer from candidate:
+##### 3. Software Engineering Practices (if required by HR)
 
-#### 4. Data Engineering (if required by HR)
+Generate at least 10 questions for the field of Software Engineering. Focus on best practise, testing, SDLC,...
 
-6: Describe your experience designing or maintaining data pipelines.
-Best answer: Practical experience with ETL, data modeling, handling large datasets, performance, and error handling.
-Answer from candidate:
+##### 4. Data Engineering (if required by HR)
 
-#### 5. Other relevant technical topics (DevOps, Cloud, etc.)
+Generate at least 10 questions for the field of Data Engineering. Focus on best practise, basic terms, batch and
+streaming
+processing, ACID historization, modern ETL/ELT, various tools based on CV and job description
 
-7: Can you describe your experience with cloud platforms such as AWS or Azure?
-Best answer: Detailed involvement, e.g., infrastructure setup, service usage, automation, security.
-Answer from candidate:
+##### 5. Other relevant technical topics (DevOps, Cloud, etc.)
 
-#### 6. SQL & Live Coding
+Here generate at least 10 questions about other relevant technical topic, E.g Clouds, DevOps, some specialization based
+on CV or Job description
 
-8: Given the following table orders (id, customer_id, amount, date), write a SQL query to select total amount per
-customer, only for orders in the last month.
-Best answer: SELECT customer_id, SUM(amount) FROM orders WHERE date >= DATEADD(month, -1, GETDATE()) GROUP BY
-customer_id;
-Answer from candidate:
+##### 6. SQL & Live Coding
 
-(Add 1–2 more live code/SW/SQL tasks where appropriate)
+First, generate at least 5 questions about some small theory about SQL which is focusing on practise.
+For example type of Joins, differences between HAVING and WHERE etc.
 
-### Logical part (max 20 minutes)
+Then generate some sample model with 3 tables and with several rows and data (so interview manager have some data sample
+which can provide to candidate for live SQL questions session).
+Then generate at least 10 questions about the `select statements` relevant to sample model you generated.
 
-Questions to test analytical skills and creative problem-solving:
-9: Imagine you have 9 balls, one of which is slightly heavier, and a balance scale. How would you identify the heavier
-ball in just two weighings?
-Best answer: Split balls into groups, explain weighing strategy (3/3/3 -> 1/1/1).
-Answer from candidate:
+#### Logical part (max 20 minutes)
 
-10: How would you estimate the number of windows in Prague?
-Best answer: Explains Fermi estimation/logical estimation method, variables, and rough calculation approach.
-Answer from candidate:
+Generate 2 questions to test analytical skills and creative problem-solving:
 
-(Add tailored questions as needed. Prefer logical puzzles, out-of-box thinking or brain teasers.)
+Add tailored questions as needed. Prefer logical puzzles, out-of-box thinking or brain teasers.
 
-### End of the interview
+#### End of the interview
 
 Mandatory closing questions for the candidate:
 

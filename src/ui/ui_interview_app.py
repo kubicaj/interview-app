@@ -1,10 +1,13 @@
 import os
 import gradio as gr
 
+from src.agent.interview_administrator.interview_administrator import InterviewAdministrator
 from src.interview_app import InterviewApp
 from src.interview_config import InterviewConfig
+
 # Load all currently open interview positions from the config
 POSITIONS = list(InterviewConfig.get_active_instance().all_open_positions.values())
+
 
 def load_position_detail(position_index):
     """
@@ -171,3 +174,27 @@ def handle_cv_upload(file):
     content_of_cv = InterviewConfig.get_pdf_content(file)
     return gr.update(visible=False), gr.update(
         visible=True), "✅ CV received! You may now browse open positions.", content_of_cv
+
+
+def create_interview_preparation_sheet(
+        position_index: int,
+        cv_content: str,
+        additional_hr_details: str
+):
+    try:
+        open_position = POSITIONS[position_index]
+        interview_config = InterviewConfig.get_active_instance()
+        interview_config.update_candidate_cv(cv_content)
+        interview_config.update_hr_department_instructions(additional_hr_details)
+        response = InterviewAdministrator(
+            interview_config=interview_config,
+            chosen_position=open_position.position_identifier
+        ).call_llm(
+            [{"role": "user",
+              "content": "create the interview manager to prepare for interview/create the material/instructions/outline "
+                         "of the interview with all questions and answers and addition notes about companies and candidate"
+              }]
+        )
+    except Exception as ex:
+        return "Unexpected issue happen. Please try again later"
+    return response.content

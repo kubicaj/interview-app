@@ -1,5 +1,5 @@
 import os.path
-from typing import List
+from typing import List, Any
 
 from langchain_core.messages import SystemMessage, BaseMessage
 
@@ -13,12 +13,12 @@ class InterviewAdministrator(BaseInterviewAgent):
     Agent to evaluate the whole interview
     """
 
-    def _create_system_prompt(self, interview_state: InterviewGraphState) -> List[BaseMessage]:
+    def _create_system_prompt(self, messages: List[Any]) -> List[BaseMessage]:
         """
         Create interview evaluator prompt
 
         Args:
-            interview_state - actual state of graph
+            message_history - history of messages
 
         Args:
             SystemMessage with prompt
@@ -27,17 +27,21 @@ class InterviewAdministrator(BaseInterviewAgent):
         system_prompt = self.agent_prompt_templates["agent_prompt"].format(**{
             "position_description": self._interview_config.get_position_content(self.chosen_position),
             "candidate_cv": self._interview_config.candidate_cv,
-            "hr_department_instructions": self._hr_department_instructions
+            "hr_department_instructions": self._interview_config.hr_department_instructions
         })
-        return interview_state.messages + [SystemMessage(content=system_prompt)]
+        return messages + [SystemMessage(content=system_prompt)]
+
+    def call_llm(self, messages: List[Any]):
+        open_ai_llm = LLMFactory.get_chat_open_ai_llm(self.INTERVIEW_ADMINISTRATOR_AGENT_NAME,
+                                                      llm_model_type="gpt-4.1")
+        messages = self._create_system_prompt(messages)
+        return open_ai_llm.invoke(input=messages)
 
     def agent_callback_implementation(self, interview_state: InterviewGraphState) -> InterviewGraphState:
         """
         Agent callback method. More info see InterviewAgent.agent_callback
         """
-        open_ai_llm = LLMFactory.get_chat_open_ai_llm(self.INTERVIEW_ADMINISTRATOR_AGENT_NAME)
-        messages = self._create_system_prompt(interview_state)
-        response = open_ai_llm.invoke(input=messages)
+        response = self.call_llm(messages=interview_state.messages)
 
         # get all communication and message from interview and send it to company
         self._send_result_interview(interview_state, response.content)

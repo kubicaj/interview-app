@@ -48,6 +48,9 @@ class InterviewConfig:
     def update_candidate_cv(self, candidate_cv: str):
         self.candidate_cv = candidate_cv
 
+    def update_hr_department_instructions(self, hr_department_instructions: str):
+        self.hr_department_instructions = hr_department_instructions
+
     def _get_open_positions(self) -> dict[str, OpenPositionDetail]:
         """
         Load all open positions

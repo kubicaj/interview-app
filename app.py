@@ -1,8 +1,10 @@
 import functools
+import tempfile
 import gradio as gr
 
 from src.ui.ui_interview_app import POSITIONS, hide_position_detail, chat_function, handle_cv_upload, \
-    load_position_detail, start_interview, show_confirm_modal, hide_confirm_modal, end_interview_with_summary, chunk
+    load_position_detail, start_interview, show_confirm_modal, hide_confirm_modal, end_interview_with_summary, chunk, \
+    create_interview_preparation_sheet
 
 PRIMARY_COLOR = "#224488"
 BG = "#f4f4fb"
@@ -14,7 +16,6 @@ with gr.Blocks(css=f"""
     justify-content: center !important;
     flex-wrap: wrap;
 }}
-
 .card {{
     background: #ffffff;
     border-radius: 5px;
@@ -33,19 +34,16 @@ with gr.Blocks(css=f"""
     box-sizing: border-box;
     animation: fadeIn 0.5s ease-in;
 }}
-
 .card:hover {{
     transform: translateY(-5px);
     box-shadow: 0 6px 24px rgba(34, 68, 136, 0.18);
 }}
-
 .card-title {{
     color: {PRIMARY_COLOR};
     font-size: 1.2em;
     font-weight: 600;
     margin-bottom: 8px;
 }}
-
 .card-desc {{
     color: #555;
     font-size: 0.95em;
@@ -57,20 +55,17 @@ with gr.Blocks(css=f"""
     margin-bottom: 12px;
     padding: 0 8px;
 }}
-
 #header {{
     text-align: center;
     color: {PRIMARY_COLOR};
     margin-bottom: 30px;
 }}
-
 #interview-title {{
     margin-top: 20px;
     font-size: 1.3em;
     font-weight: 600;
     color: #333;
 }}
-
 #interview-section {{
     background: #f9faff;
     border: 1px solid #dce6f9;
@@ -78,7 +73,6 @@ with gr.Blocks(css=f"""
     padding: 20px;
     margin-top: 30px;
 }}
-
 #card_button {{
     width: auto !important;
     display: inline-block !important;
@@ -112,16 +106,25 @@ with gr.Blocks(css=f"""
 }}
 """) as demo:
     gr.Markdown(
-        """
-        # 🚀 Join Our Team!
-        Upload canidate CV to discover exciting career opportunities tailored for you.
+        """# 🚀 Join Our Team or Manage Interviews!
+        Welcome to the Interview Assistant. This app is designed **both for candidates looking to join our team** and **for interview managers who need to quickly generate structured interview preparation materials**.
 
-        1. 📎 **Upload canidate CV** using the button above.  
-        2. 🧭 **Explore open positions** that match your profile.  
-        3. 🔍 **Click "Show detail"** to learn more about a specific role.  
-        4. 🤖 **Start an AI interview** for your chosen position.  
-        5. 📝 **Chat with the AI interviewer** and get real-time feedback.  
-        6. ✅ **End the interview** to explore other roles or update your CV.
+        ## For Candidates
+        1. 📎 **Upload a candidate's CV** using the upload button.
+        2. 🧭 **Browse open positions** tailored to the CV content.
+        3. 🔍 **Show role details** by clicking "Show detail".
+        4. 🗣️ **Start an AI-powered interview** for your chosen position.
+        5. 📝 **Chat with the AI interviewer** and receive instant feedback.
+        6. ✅ **End the interview** to review a summary or try another position.
+
+        ## For Interview Managers
+        - 📝 **Create Interview Preparation Sheets**: Choose any open position and quickly generate a detailed interview prep guide. You can optionally add specific HR instructions to the prep sheet.
+        - 📥 **Download generated materials** for use in interviews or training.
+
+        ---
+
+        *Use this tool for both interactive AI interviews and to assist with your interview process workflow.*
+
         """,
         elem_id="header"
     )
@@ -150,7 +153,6 @@ with gr.Blocks(css=f"""
                         interview_btns.append(btn_start_interview)
                         create_preparation_sheet_btns.append(btn_create_preparation_sheet)
 
-
     with gr.Group(visible=False) as detail_group:
         detail_title = gr.Markdown("**Position Detail**", elem_id="modal-title")
         detail_md = gr.Markdown("", elem_id="modal-md")
@@ -173,11 +175,8 @@ with gr.Blocks(css=f"""
 
         send_btn.click(chat_function, [msg, state, interview_application], [chatbot, state, msg])
 
-
         def update_title(pos_name):
             return f"### Interview chat for **{pos_name}** position"
-
-
         chosen_position_name.change(update_title, chosen_position_name, pos_label)
 
     upload_button.click(
@@ -194,10 +193,108 @@ with gr.Blocks(css=f"""
         btn.click(
             functools.partial(start_interview, position_index),
             inputs=[cv_content],
-            outputs=[interview_chat, chosen_position_name, chosen_position_index] + interview_btns + [chatbot, state,
-                                                                                                      interview_application]
+            outputs=[interview_chat, chosen_position_name, chosen_position_index] +
+                    interview_btns + [chatbot, state, interview_application]
         )
 
+    # Preparation sheet modals & workflow
+    with gr.Group(visible=False) as prep_sheet_modal:
+        prep_sheet_instructions = gr.Textbox(
+            label="Additional HR instructions for interview",
+            placeholder="Add extra HR interview instructions if required...",
+            lines=4
+        )
+        with gr.Row():
+            prep_sheet_confirm = gr.Button("Confirm", variant="primary")
+            prep_sheet_cancel = gr.Button("Cancel", variant="secondary")
+        prep_sheet_status = gr.Markdown("", visible=False)
+
+    with gr.Group(visible=False) as prep_sheet_progress_modal:
+        gr.Markdown("⏳ Generating your preparation sheet. It can take more than 30 seconds, please wait ...")
+
+    with gr.Group(visible=False) as prep_sheet_result_group:
+        gr.Markdown("📝 Interview Preparation Sheet generated below: (save as .txt)")
+        prep_sheet_result = gr.Textbox(label="Preparation Sheet", lines=15, interactive=False)
+        prep_sheet_download_btn = gr.File(label="Download Preparation Sheet (TXT)", interactive=False)
+        prep_sheet_close_btn = gr.Button("Close", variant="secondary")
+
+    prep_sheet_position_index = gr.State(-1)
+    prep_sheet_result_text = gr.State("")
+    all_action_buttons = show_btns + interview_btns + create_preparation_sheet_btns
+
+    def open_prep_sheet_modal(position_index, *buttons):
+        # Return as many outputs as in outputs=
+        return (
+            gr.update(visible=True),       # show modal
+            gr.update(value=""),           # clear HR box
+            position_index,                # update index
+            *(gr.update(interactive=False) for _ in buttons)
+        )
+
+    def close_prep_sheet_modal(*buttons):
+        return (gr.update(visible=False),) + tuple(gr.update(interactive=True) for _ in buttons)
+
+    def hide_modals_and_show_progress(*buttons):
+        # Hide HR modal, show progress, keep others disabled
+        return (gr.update(visible=False), gr.update(visible=True)) + tuple(gr.update(interactive=False) for _ in buttons)
+
+    def generate_prep_sheet_and_store(position_index, cv_content_val, additional_hr_details):
+        return create_interview_preparation_sheet(
+            position_index=position_index,
+            cv_content=cv_content_val,
+            additional_hr_details=additional_hr_details
+        )
+
+    def display_prep_sheet_result(result_txt, *buttons):
+        tf = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8")
+        tf.write(result_txt)
+        tf.close()
+        return (gr.update(visible=True), gr.update(value=result_txt), gr.update(value=tf.name), result_txt) + \
+            tuple(gr.update(interactive=True) for _ in buttons)
+
+    def hide_prep_sheet_result_output(*buttons):
+        return (gr.update(visible=False), gr.update(value=""), gr.update(value=None), "") + \
+            tuple(gr.update(interactive=True) for _ in buttons)
+
+    for position_index, btn in enumerate(create_preparation_sheet_btns):
+        btn.click(
+            functools.partial(open_prep_sheet_modal, position_index),
+            inputs=all_action_buttons,
+            outputs=[prep_sheet_modal, prep_sheet_instructions, prep_sheet_position_index] + all_action_buttons
+        )
+
+    prep_sheet_cancel.click(
+        functools.partial(close_prep_sheet_modal),
+        inputs=all_action_buttons,
+        outputs=[prep_sheet_modal] + all_action_buttons
+    )
+
+    prep_sheet_confirm.click(
+        hide_modals_and_show_progress,
+        inputs=all_action_buttons,
+        outputs=[prep_sheet_modal, prep_sheet_progress_modal] + all_action_buttons
+    ).then(
+        generate_prep_sheet_and_store,
+        inputs=[prep_sheet_position_index, cv_content, prep_sheet_instructions],
+        outputs=[prep_sheet_result_text],
+        show_progress=True,
+        queue=True
+    ).then(
+        display_prep_sheet_result,
+        inputs=[prep_sheet_result_text] + all_action_buttons,
+        outputs=[prep_sheet_result_group, prep_sheet_result, prep_sheet_download_btn, prep_sheet_result_text] + all_action_buttons
+    ).then(
+        lambda: gr.update(visible=False),
+        None, [prep_sheet_progress_modal]
+    )
+
+    prep_sheet_close_btn.click(
+        hide_prep_sheet_result_output,
+        inputs=all_action_buttons,
+        outputs=[prep_sheet_result_group, prep_sheet_result, prep_sheet_download_btn, prep_sheet_result_text] + all_action_buttons
+    )
+
+    # Interview end summary modal etc
     with gr.Group(visible=False) as confirm_modal:
         confirm_msg = gr.Markdown("Are you sure you want to end the interview?")
         btn_yes = gr.Button("Yes, end interview", variant="stop", scale=0)
@@ -207,7 +304,7 @@ with gr.Blocks(css=f"""
     btn_no.click(hide_confirm_modal, outputs=[confirm_modal])
 
     with gr.Group(visible=False) as progress_modal:
-        gr.Markdown("⏳ Generating your interview summary. Please wait...")
+        gr.Markdown("⏳ Generating your interview summary. It can take more than 30 seconds. Please wait...")
 
     with gr.Group(visible=False) as summary_display_group:
         gr.Markdown("📝 Here's a summary of your interview:")

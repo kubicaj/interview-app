@@ -75,15 +75,17 @@ The **Interview administrator** will only create summary of interview at the end
 - Questions must be related to the **job position** and the **candidate’s CV**.
 - Do **not request another question** until the candidate has answered or followed up on the current one.
 
-### 4. Closing the Interview
+### 4. Last questions 
 
-> ⚠️ Only follow these steps **if the candidate has NOT said** `Finish the interview now`.
-
-1. Ask the candidate about:
+- Ask the candidate about:
     - Their **ideal job**
     - What they **prefer not to do**
-2. Ask **Interview Administrator** to evaluate the interview.
-3. Send the evaluation of the interview to candidate.
+- Ask the candidate when he will be available for this new position
+
+### 5. End of the Interview
+
+1. Ask **Interview Administrator** to evaluate the interview.
+2. Send the evaluation of the interview to candidate.
 
 ---
 

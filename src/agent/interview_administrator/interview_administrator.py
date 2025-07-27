@@ -1,3 +1,4 @@
+import os.path
 from typing import List
 
 from langchain_core.messages import SystemMessage, BaseMessage
@@ -64,5 +65,12 @@ class InterviewAdministrator(BaseInterviewAgent):
             f"## Interview id \n\n {interview_state.session_id} \n\n## Messages history\n\n {all_message_history} \n\n "
             f"## Summary of interview \n\n  "
             f"{administrator_output}")
+
+        os.makedirs("summaries", exist_ok=True)
+        # save result
+        filename = f"summaries{os.path.sep}interview_summary_{interview_state.session_id}.md"
+        with open(filename, "w") as f:
+            f.write(final_output)
+
         # TODO - send email
         self.logger.info(final_output)

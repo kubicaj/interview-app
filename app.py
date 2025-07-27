@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 import functools
 import gradio as gr
@@ -14,56 +15,19 @@ MAX_COLUMNS = 4
 
 
 def load_position_detail(position_index):
-    """
-    Load and show the detailed content of a selected job position.
-
-    Args:
-      position_index (int) - Index of the selected position in the POSITIONS list
-
-    Return:
-      (tuple) - Visibility update for the UI, position content markdown, and position title
-    """
     open_position = POSITIONS[position_index]
     return gr.update(visible=True), open_position.open_position_content, open_position.position_title
 
 
 def hide_detail():
-    """
-    Hide the job position detail section.
-
-    Args:
-      None
-
-    Return:
-      (tuple) - UI update to hide detail section and clear its content
-    """
     return gr.update(visible=False), "", ""
 
 
 def set_interview_buttons(disable=True):
-    """
-    Enable or disable all interview buttons.
-
-    Args:
-      disable (bool) - Whether to disable the buttons (default: True)
-
-    Return:
-      (list) - List of Gradio update objects controlling button interactivity
-    """
     return [gr.update(interactive=(not disable)) for _ in POSITIONS]
 
 
 def start_interview(position_index: int, cv_content: str):
-    """
-    Start the interview process for a selected job.
-
-    Args:
-      position_index (int) - Index of the job position
-      cv_content (str) - Text content extracted from the uploaded CV
-
-    Return:
-      (tuple) - Updates to show interview UI, selected position metadata, button states, initial chat message, and interview app state
-    """
     initial_message = (
         f"Hi. You are here because you apply for position {POSITIONS[position_index].position_title}. Can we start please?"
     )
@@ -81,83 +45,35 @@ def start_interview(position_index: int, cv_content: str):
 
 
 def show_confirm_modal():
-    """
-    Display the confirmation modal before ending the interview.
-
-    Args:
-      None
-
-    Return:
-      (Gradio Update) - Update to show confirmation modal
-    """
     return gr.update(visible=True)
 
 
 def hide_confirm_modal():
-    """
-    Hide the confirmation modal.
-
-    Args:
-      None
-
-    Return:
-      (Gradio Update) - Update to hide confirmation modal
-    """
     return gr.update(visible=False)
 
 
 async def end_interview_app(interview_app: InterviewApp, history: list[dict]):
-    """
-    Asynchronously send a final message to the interview graph to end the conversation.
-
-    Args:
-      interview_app (InterviewApp) - Active interview app instance
-      history (list[dict]) - Chat history log
-
-    Return:
-      None
-    """
     interview_app.invoke_user_query("Finish the interview now", history)
 
 
-def end_interview(interview_app: InterviewApp, history: list[dict]):
-    """
-    End the interview session and reset related UI states.
-
-    Args:
-      interview_app (InterviewApp) - Active interview app instance
-      history (list[dict]) - Chat history log
-
-    Return:
-      (tuple) - UI updates to hide interview section, reset state and re-enable interview buttons
-    """
-
-    def async_wrapper():
-        asyncio.run(end_interview_app(interview_app, history))
-
-    threading.Thread(target=async_wrapper).start()
-
+def end_interview_with_summary(interview_app: InterviewApp, history: list[dict]):
+    interview_app.invoke_user_query("Finish the interview now", history)
+    summary_text = ""
+    filename = f"summaries{os.path.sep}interview_summary_{interview_app.session_id}.md"
+    with open(filename, "r") as file:
+        summary_text = file.read()
     return (
-        gr.update(visible=False),
-        "",
-        -1,
+        gr.update(visible=False), "", -1,
         *set_interview_buttons(disable=False),
         gr.update(visible=False),
+        gr.update(visible=False),
+        gr.update(visible=True),
+        summary_text,
+        filename
     )
 
 
 def chat_function(user_input, history: list[dict], interview_app: InterviewApp):
-    """
-    Handle user input during the chat, process it through the interview app, and update history.
-
-    Args:
-      user_input (str) - User's message
-      history (list[dict]) - Chat history
-      interview_app (InterviewApp) - Current interview app instance
-
-    Return:
-      (tuple) - Updated chat history for chatbot and UI
-    """
     try:
         result = interview_app.invoke_user_query(user_input, history)
     except Exception as ex:
@@ -168,30 +84,11 @@ def chat_function(user_input, history: list[dict], interview_app: InterviewApp):
 
 
 def chunk(seq, size):
-    """
-    Split a sequence into chunks of specified size.
-
-    Args:
-      seq (list) - Sequence to be chunked
-      size (int) - Size of each chunk
-
-    Return:
-      (generator) - Chunks of the original list
-    """
     for i in range(0, len(seq), size):
         yield seq[i:i + size]
 
 
 def handle_cv_upload(file):
-    """
-    Handle the uploaded CV file and extract content.
-
-    Args:
-      file (File) - Uploaded PDF file containing the CV
-
-    Return:
-      (tuple) - UI updates and extracted CV content
-    """
     if file is None:
         return gr.update(visible=True), gr.update(visible=False), ""
     content_of_cv = InterviewConfig.get_pdf_content(file)
@@ -199,7 +96,6 @@ def handle_cv_upload(file):
         visible=True), "✅ CV received! You may now browse open positions.", content_of_cv
 
 
-# ========== UI Layout ==========
 with gr.Blocks(css=f"""
 .centered-row {{
     display: flex;
@@ -276,7 +172,6 @@ with gr.Blocks(css=f"""
     100% {{ opacity: 1; transform: translateY(0); }}
 }}
 """) as demo:
-    # ===== Header =====
     gr.Markdown(
         """
         # 🚀 Join Our Team!
@@ -292,7 +187,6 @@ with gr.Blocks(css=f"""
         elem_id="header"
     )
 
-    # ===== CV Upload Section =====
     with gr.Row():
         uploaded_file = gr.File(label="Upload your CV (PDF)", file_types=[".pdf"])
         upload_button = gr.Button("Submit CV", variant="primary")
@@ -300,7 +194,6 @@ with gr.Blocks(css=f"""
     upload_feedback = gr.Markdown("", visible=False)
     cv_warning = gr.Markdown("📎 Please upload your CV to continue.", visible=False)
 
-    # ===== Hidden Job Cards Until CV Uploaded =====
     with gr.Group(visible=False, elem_id="job-cards") as job_card_section:
         show_btns = []
         interview_btns = []
@@ -315,21 +208,18 @@ with gr.Blocks(css=f"""
                         show_btns.append(btn_det)
                         interview_btns.append(btn_int)
 
-    # ===== Modal: Position Detail =====
     with gr.Group(visible=False) as detail_group:
         detail_title = gr.Markdown("**Position Detail**", elem_id="modal-title")
         detail_md = gr.Markdown("", elem_id="modal-md")
         btn_close = gr.Button("Close detail", variant="stop")
     btn_close.click(hide_detail, outputs=[detail_group, detail_md, detail_title])
 
-    # ====== App State ======
     interview_chat = gr.Column(visible=False, elem_id="interview-section")
     chosen_position_name = gr.State("")
     interview_application = gr.State(None)
     chosen_position_index = gr.State(-1)
     cv_content = gr.State("")
 
-    # ====== Interview UI ======
     with interview_chat:
         pos_label = gr.Markdown("", elem_id="interview-title")
         chatbot = gr.Chatbot(type="messages")
@@ -347,14 +237,12 @@ with gr.Blocks(css=f"""
 
         chosen_position_name.change(update_title, chosen_position_name, pos_label)
 
-    # ===== Wire CV Upload Logic =====
     upload_button.click(
         handle_cv_upload,
         inputs=[uploaded_file],
         outputs=[cv_warning, job_card_section, upload_feedback, cv_content]
     )
 
-    # ===== Hook Buttons =====
     for position_index, btn in enumerate(show_btns):
         btn.click(functools.partial(load_position_detail, position_index),
                   outputs=[detail_group, detail_md, detail_title])
@@ -367,7 +255,6 @@ with gr.Blocks(css=f"""
                                                                                                       interview_application]
         )
 
-    # ===== Confirm End Interview Modal =====
     with gr.Group(visible=False) as confirm_modal:
         confirm_msg = gr.Markdown("Are you sure you want to end the interview?")
         btn_yes = gr.Button("Yes, end interview", variant="stop", scale=0)
@@ -375,11 +262,29 @@ with gr.Blocks(css=f"""
 
     btn_end.click(show_confirm_modal, outputs=[confirm_modal])
     btn_no.click(hide_confirm_modal, outputs=[confirm_modal])
+
+    with gr.Group(visible=False) as progress_modal:
+        gr.Markdown("⏳ Generating your interview summary. Please wait...")
+
+    with gr.Group(visible=False) as summary_display_group:
+        gr.Markdown("📝 Here's a summary of your interview:")
+        summary_text = gr.Textbox(label="Interview Summary", lines=15, interactive=False)
+        download_btn = gr.File(label="Download Summary (TXT)", interactive=False)
+        close_summary_btn = gr.Button("Close", variant="secondary")
+
+    close_summary_btn.click(lambda: gr.update(visible=False), outputs=[summary_display_group])
+
     btn_yes.click(
-        end_interview,
+        lambda: gr.update(visible=True),
+        outputs=[progress_modal]
+    ).then(
+        end_interview_with_summary,
         inputs=[interview_application, state],
-        outputs=[interview_chat, chosen_position_name, chosen_position_index] + interview_btns + [confirm_modal]
+        outputs=[
+            interview_chat, chosen_position_name, chosen_position_index,
+            *interview_btns, confirm_modal, progress_modal,
+            summary_display_group, summary_text, download_btn
+        ]
     )
 
-# ========== RUN ==========
 demo.launch()

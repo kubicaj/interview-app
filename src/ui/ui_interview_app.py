@@ -118,7 +118,7 @@ def end_interview_with_summary(interview_app: InterviewApp, history: list[dict])
         gr.update(visible=False),
         gr.update(visible=False),
         gr.update(visible=True),
-        summary_text,
+        gr.update(value=summary_text, visible=True),
         filename
     )
 

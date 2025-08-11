@@ -175,6 +175,11 @@ We focus on:
     - <Short project/role description>
     - <Responsibilities/Achievements>
     - <Technologies used: ...>
+    - Questions about this position:
+      - <Question 1:>
+        Answer from candidate:
+      - <Question X:>
+        Answer from candidate:
 
 Example of the questions for this section
 
@@ -220,13 +225,12 @@ Generate at least 10 questions for the field of Software Engineering. Focus on b
 
 ##### 4. Data Engineering (if required by HR)
 
-Generate at least 10 questions for the field of Data Engineering. Focus on best practise, basic terms, batch and
-streaming
-processing, ACID historization, modern ETL/ELT, various tools based on CV and job description
+Generate at least 15 questions for the field of Data Engineering. Focus on best practise, basic terms, batch and
+streaming  processing, ACID historization, modern ETL/ELT, various tools based on CV and job description
 
 ##### 5. Other relevant technical topics (DevOps, Cloud, etc.)
 
-Here generate at least 10 questions about other relevant technical topic, E.g Clouds, DevOps, some specialization based
+Here generate at least 15 questions about other relevant technical topic, E.g Clouds, DevOps, some specialization based
 on CV or Job description
 
 ##### 6. SQL & Live Coding
@@ -238,7 +242,7 @@ Then generate some sample model with 3 tables and with several rows and data (so
 which can provide to candidate for live SQL questions session).
 Then generate at least 10 questions about the `select statements` relevant to sample model you generated.
 
-#### Logical part (max 20 minutes)
+#### Logical part (max 15 minutes)
 
 Generate 2 questions to test analytical skills and creative problem-solving:
 

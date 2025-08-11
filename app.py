@@ -8,7 +8,7 @@ from src.ui.ui_interview_app import POSITIONS, hide_position_detail, chat_functi
 
 PRIMARY_COLOR = "#224488"
 BG = "#f4f4fb"
-MAX_COLUMNS = 4
+MAX_COLUMNS = 3
 
 with gr.Blocks(css=f"""
 .centered-row {{
@@ -175,8 +175,11 @@ with gr.Blocks(css=f"""
 
         send_btn.click(chat_function, [msg, state, interview_application], [chatbot, state, msg])
 
+
         def update_title(pos_name):
             return f"### Interview chat for **{pos_name}** position"
+
+
         chosen_position_name.change(update_title, chosen_position_name, pos_label)
 
     upload_button.click(
@@ -210,11 +213,11 @@ with gr.Blocks(css=f"""
         prep_sheet_status = gr.Markdown("", visible=False)
 
     with gr.Group(visible=False) as prep_sheet_progress_modal:
-        gr.Markdown("⏳ Generating your preparation sheet. It can take more than 30 seconds, please wait ...")
+        gr.Markdown("⏳ Generating your preparation sheet. It can take more than 1 minute, please wait ...")
 
     with gr.Group(visible=False) as prep_sheet_result_group:
         gr.Markdown("📝 Interview Preparation Sheet generated below: (save as .txt)")
-        prep_sheet_result = gr.Textbox(label="Preparation Sheet", lines=15, interactive=False)
+        prep_sheet_result = gr.Markdown(label="Preparation Sheet", visible=False)
         prep_sheet_download_btn = gr.File(label="Download Preparation Sheet (TXT)", interactive=False)
         prep_sheet_close_btn = gr.Button("Close", variant="secondary")
 
@@ -222,21 +225,26 @@ with gr.Blocks(css=f"""
     prep_sheet_result_text = gr.State("")
     all_action_buttons = show_btns + interview_btns + create_preparation_sheet_btns
 
+
     def open_prep_sheet_modal(position_index, *buttons):
         # Return as many outputs as in outputs=
         return (
-            gr.update(visible=True),       # show modal
-            gr.update(value=""),           # clear HR box
-            position_index,                # update index
+            gr.update(visible=True),  # show modal
+            gr.update(value=""),  # clear HR box
+            position_index,  # update index
             *(gr.update(interactive=False) for _ in buttons)
         )
+
 
     def close_prep_sheet_modal(*buttons):
         return (gr.update(visible=False),) + tuple(gr.update(interactive=True) for _ in buttons)
 
+
     def hide_modals_and_show_progress(*buttons):
         # Hide HR modal, show progress, keep others disabled
-        return (gr.update(visible=False), gr.update(visible=True)) + tuple(gr.update(interactive=False) for _ in buttons)
+        return (gr.update(visible=False), gr.update(visible=True)) + tuple(
+            gr.update(interactive=False) for _ in buttons)
+
 
     def generate_prep_sheet_and_store(position_index, cv_content_val, additional_hr_details):
         return create_interview_preparation_sheet(
@@ -245,16 +253,20 @@ with gr.Blocks(css=f"""
             additional_hr_details=additional_hr_details
         )
 
+
     def display_prep_sheet_result(result_txt, *buttons):
         tf = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8")
         tf.write(result_txt)
         tf.close()
-        return (gr.update(visible=True), gr.update(value=result_txt), gr.update(value=tf.name), result_txt) + \
+        return (gr.update(visible=True), gr.update(value=result_txt, visible=True), gr.update(value=tf.name),
+                result_txt) + \
             tuple(gr.update(interactive=True) for _ in buttons)
+
 
     def hide_prep_sheet_result_output(*buttons):
         return (gr.update(visible=False), gr.update(value=""), gr.update(value=None), "") + \
             tuple(gr.update(interactive=True) for _ in buttons)
+
 
     for position_index, btn in enumerate(create_preparation_sheet_btns):
         btn.click(
@@ -282,7 +294,8 @@ with gr.Blocks(css=f"""
     ).then(
         display_prep_sheet_result,
         inputs=[prep_sheet_result_text] + all_action_buttons,
-        outputs=[prep_sheet_result_group, prep_sheet_result, prep_sheet_download_btn, prep_sheet_result_text] + all_action_buttons
+        outputs=[prep_sheet_result_group, prep_sheet_result, prep_sheet_download_btn,
+                 prep_sheet_result_text] + all_action_buttons
     ).then(
         lambda: gr.update(visible=False),
         None, [prep_sheet_progress_modal]
@@ -291,7 +304,8 @@ with gr.Blocks(css=f"""
     prep_sheet_close_btn.click(
         hide_prep_sheet_result_output,
         inputs=all_action_buttons,
-        outputs=[prep_sheet_result_group, prep_sheet_result, prep_sheet_download_btn, prep_sheet_result_text] + all_action_buttons
+        outputs=[prep_sheet_result_group, prep_sheet_result, prep_sheet_download_btn,
+                 prep_sheet_result_text] + all_action_buttons
     )
 
     # Interview end summary modal etc
@@ -308,7 +322,7 @@ with gr.Blocks(css=f"""
 
     with gr.Group(visible=False) as summary_display_group:
         gr.Markdown("📝 Here's a summary of your interview:")
-        summary_text = gr.Textbox(label="Interview Summary", lines=15, interactive=False)
+        summary_text = gr.Markdown(label="Interview Summary", visible=False)
         download_btn = gr.File(label="Download Summary (TXT)", interactive=False)
         close_summary_btn = gr.Button("Close", variant="secondary")
 

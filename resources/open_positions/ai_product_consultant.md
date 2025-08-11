@@ -1,3 +1,7 @@
+## Position title
+
+AI product consultant
+
 ## What You'll Do
 
 * Oversee AI projects from concept design to implementation
